@@ -19,12 +19,23 @@
   </PropertyGroup>
   <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.props" Condition="Exists('$(NanoFrameworkProjectSystemPath)NFProjectSystem.props')" />
   <ItemGroup>
+    <Compile Include="Core\Button.cs" />
     <Compile Include="Core\VirtButton.cs" />
+    <Compile Include="Enums\ButtonLevel.cs" />
+    <Compile Include="Enums\EncButtonFlag.cs" />
+    <Compile Include="Enums\EncButtonPackFlag.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="mscorlib">
-      <HintPath>..\packages\nanoFramework.CoreLibrary.1.14.2\lib\mscorlib.dll</HintPath>
+    <Reference Include="mscorlib, Version=1.15.6.0, Culture=neutral, PublicKeyToken=c07d481e9758c731, processorArchitecture=MSIL">
+      <HintPath>..\packages\nanoFramework.CoreLibrary.1.15.5\lib\mscorlib.dll</HintPath>
+    </Reference>
+    <Reference Include="nanoFramework.Runtime.Events, Version=1.11.15.0, Culture=neutral, PublicKeyToken=c07d481e9758c731, processorArchitecture=MSIL">
+      <HintPath>..\packages\nanoFramework.Runtime.Events.1.11.15\lib\nanoFramework.Runtime.Events.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Device.Gpio, Version=1.1.38.0, Culture=neutral, PublicKeyToken=c07d481e9758c731, processorArchitecture=MSIL">
+      <HintPath>..\packages\nanoFramework.System.Device.Gpio.1.1.38\lib\System.Device.Gpio.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
