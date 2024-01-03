@@ -7,7 +7,7 @@ namespace nanoFramework.EncButton.Core
     {
         private GpioController _gpioController;
 
-        public Button(int npin = 0, PinMode pinMode = PinMode.InputPullUp, ButtonLevel btnLevel = ButtonLevel.Low,
+        public Button(int npin = 0, PinMode pinMode = PinMode.InputPullUp, PinValue btnLevel = default,
             GpioController? gpioController = null)
         {
             _gpioController = gpioController ?? new GpioController();
@@ -20,7 +20,7 @@ namespace nanoFramework.EncButton.Core
 
 
         // указать пин и его режим работы
-        void init(int npin = 0, PinMode mode = PinMode.InputPullUp, ButtonLevel btnLevel = ButtonLevel.Low)
+        void init(int npin = 0, PinMode mode = PinMode.InputPullUp, PinValue btnLevel = default)
         {
             pin = npin;
             _gpioController.SetPinMode(pin, mode);

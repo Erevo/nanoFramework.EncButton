@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Device.Gpio;
 using nanoFramework.EncButton.Enums;
 
 namespace nanoFramework.EncButton.Core
@@ -9,46 +10,46 @@ namespace nanoFramework.EncButton.Core
 
         public const int EB_SHIFT = 4;
 
-        public long EB_DEB_T { get; set; } = 50;
-        public long EB_CLICK_T { get; set; } = 500 >> EB_SHIFT;
-        public long EB_HOLD_T { get; set; } = 600 >> EB_SHIFT;
-        public long EB_STEP_T { get; set; } = 200 >> EB_SHIFT;
+        public int EB_DEB_T { get; set; } = 50;
+        public int EB_CLICK_T { get; set; } = 500 >> EB_SHIFT;
+        public int EB_HOLD_T { get; set; } = 600 >> EB_SHIFT;
+        public int EB_STEP_T { get; set; } = 200 >> EB_SHIFT;
 
         public event Action<EncButtonFlag>? Action;
 
-        public long tmr { get; set; } = 0;
-        public long ftmr = 0;
+        public int tmr { get; set; } = 0;
+        public int ftmr = 0;
 
         public int clicks { get; set; } = 0;
 
         // ====================== SET ======================
         // установить таймаут удержания, умолч. 600 (макс. 4000 мс)
-        public void setHoldTimeout(long timeout)
+        public void setHoldTimeout(int timeout)
         {
             EB_HOLD_T = timeout;
         }
 
         // установить таймаут импульсного удержания, умолч. 200 (макс. 4000 мс)
-        public void setStepTimeout(long timeout)
+        public void setStepTimeout(int timeout)
         {
             EB_STEP_T = timeout;
         }
 
         // установить таймаут ожидания кликов, умолч. 500 (макс. 4000 мс)
-        public void setClickTimeout(long timeout)
+        public void setClickTimeout(int timeout)
         {
             EB_CLICK_T = timeout;
         }
 
         // установить таймаут антидребезга, умолч. 50 (макс. 255 мс)
-        public void setDebTimeout(long timeout)
+        public void setDebTimeout(int timeout)
         {
             EB_DEB_T = timeout;
         }
 
         // установить уровень кнопки (HIGH - кнопка замыкает VCC, LOW - замыкает GND)
-        protected void setBtnLevel(ButtonLevel level) {
-            write_bf(EncButtonPackFlag.INV, level == ButtonLevel.Low);
+        protected void setBtnLevel(PinValue level) {
+            write_bf(EncButtonPackFlag.INV, level == PinValue.Low);
         }
 
         // кнопка нажата в прерывании (не учитывает btnLevel!)
@@ -153,7 +154,7 @@ namespace nanoFramework.EncButton.Core
         }
 
         // получить количество степов
-        public long getSteps()
+        public int getSteps()
         {
             return ftmr > 0 ? ((stepFor() + EB_STEP_T - 1) / EB_STEP_T) : 0; // (x + y - 1) / y
         }
@@ -233,9 +234,9 @@ namespace nanoFramework.EncButton.Core
 
         // ====================== TIME ======================
         // после взаимодействия с кнопкой (или энкодером EncButton) прошло указанное время, мс [событие]
-        bool timeout(long tout)
+        bool timeout(int tout)
         {
-            if (read_bf(EncButtonPackFlag.TOUT) && (long)((long)Utils.EB_UPTIME() - tmr) > tout)
+            if (read_bf(EncButtonPackFlag.TOUT) && (int)((int)Utils.EB_UPTIME() - tmr) > tout)
             {
                 clr_bf(EncButtonPackFlag.TOUT);
                 return true;
@@ -245,7 +246,7 @@ namespace nanoFramework.EncButton.Core
         }
 
         // время, которое кнопка удерживается (с начала нажатия), мс
-        long pressFor()
+        int pressFor()
         {
             if (ftmr > 0)
             {
@@ -256,13 +257,13 @@ namespace nanoFramework.EncButton.Core
         }
 
         // кнопка удерживается дольше чем (с начала нажатия), мс [состояние]
-        bool pressFor(long ms)
+        bool pressFor(int ms)
         {
             return pressFor() > ms;
         }
 
         // время, которое кнопка удерживается (с начала удержания), мс
-        long holdFor()
+        int holdFor()
         {
             if (read_bf(EncButtonPackFlag.HLD))
             {
@@ -273,13 +274,13 @@ namespace nanoFramework.EncButton.Core
         }
 
         // кнопка удерживается дольше чем (с начала удержания), мс [состояние]
-        bool holdFor(long ms)
+        bool holdFor(int ms)
         {
             return holdFor() > ms;
         }
 
         // время, которое кнопка удерживается (с начала степа), мс
-        long stepFor()
+        int stepFor()
         {
             if (read_bf(EncButtonPackFlag.STP))
             {
@@ -290,7 +291,7 @@ namespace nanoFramework.EncButton.Core
         }
 
         // кнопка удерживается дольше чем (с начала степа), мс [состояние]
-        bool stepFor(long ms)
+        bool stepFor(int ms)
         {
             return stepFor() > ms;
         }
@@ -347,8 +348,8 @@ namespace nanoFramework.EncButton.Core
                 else return false;
             }
 
-            long ms = Utils.EB_UPTIME();
-            long deb = ms - tmr;
+            int ms = Utils.EB_UPTIME();
+            int deb = ms - tmr;
 
             if (s)
             {
@@ -385,7 +386,7 @@ namespace nanoFramework.EncButton.Core
                         {
                             // удержание ещё не зафиксировано
 
-                            if (deb >= (long)EB_HOLD_T) // ждём EB_HOLD_TIME - это удержание
+                            if (deb >= (int)EB_HOLD_T) // ждём EB_HOLD_TIME - это удержание
                             {
                                 set_bf(EncButtonPackFlag.HLD_R | EncButtonPackFlag.HLD); // флаг что было удержание
                                 tmr = ms; // сброс таймаута
@@ -394,7 +395,7 @@ namespace nanoFramework.EncButton.Core
                         else
                         {
                             // удержание зафиксировано
-                            if (deb >= (long)(read_bf(EncButtonPackFlag.STP) ? EB_STEP_T : EB_HOLD_T))
+                            if (deb >= (int)(read_bf(EncButtonPackFlag.STP) ? EB_STEP_T : EB_HOLD_T))
                             {
                                 set_bf(EncButtonPackFlag.STP | EncButtonPackFlag.STP_R); // флаг степ
                                 tmr = ms; // сброс таймаута
@@ -432,7 +433,7 @@ namespace nanoFramework.EncButton.Core
                 {
                     // есть клики, ждём EB_CLICK_TIME
 
-                    if (read_bf(EncButtonPackFlag.HLD | EncButtonPackFlag.STP) || deb >= (long)EB_CLICK_T)
+                    if (read_bf(EncButtonPackFlag.HLD | EncButtonPackFlag.STP) || deb >= (int)EB_CLICK_T)
                         set_bf(EncButtonPackFlag.CLKS_R); // флаг clicks
 
                     else if (ftmr > 0) ftmr = 0;

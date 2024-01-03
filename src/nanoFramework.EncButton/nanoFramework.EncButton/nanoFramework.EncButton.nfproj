@@ -21,7 +21,6 @@
   <ItemGroup>
     <Compile Include="Core\Button.cs" />
     <Compile Include="Core\VirtButton.cs" />
-    <Compile Include="Enums\ButtonLevel.cs" />
     <Compile Include="Enums\EncButtonFlag.cs" />
     <Compile Include="Enums\EncButtonPackFlag.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
