@@ -34,7 +34,7 @@ namespace nanoFramework.EncButton.Core
         }
 
         // функция обработки, вызывать в loop
-        bool tick()
+        public bool tick()
         {
             return base.tick(Utils.EBread(pin, _gpioController));
         }
