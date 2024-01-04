@@ -10,198 +10,205 @@ namespace nanoFramework.EncButton.Core
 
         public const int EB_SHIFT = 4;
 
-        public int EB_DEB_T { get; set; } = 50;
-        public int EB_CLICK_T { get; set; } = 500 >> EB_SHIFT;
-        public int EB_HOLD_T { get; set; } = 600 >> EB_SHIFT;
-        public int EB_STEP_T { get; set; } = 200 >> EB_SHIFT;
+        public int EB_DEB_T = 50;
+        public int EB_CLICK_T = 500 >> EB_SHIFT;
+        public int EB_HOLD_T = 600 >> EB_SHIFT;
+        public int EB_STEP_T = 200 >> EB_SHIFT;
 
-        public event Action<EncButtonFlag>? Action;
+        //public event Action<EncButtonFlag>? Action;
+        public delegate void ButtonActionDelegate(object sender, EncButtonFlag encButtonFlag);
+        public event ButtonActionDelegate? ButtonAction;
 
-        public int tmr { get; set; } = 0;
-        public int ftmr = 0;
+        public int _timer  = 0;
+        public int _fTimer = 0;
 
-        public int clicks { get; set; } = 0;
+        public int Clicks { get; private set; } = 0;
 
         // ====================== SET ======================
         // установить таймаут удержания, умолч. 600 (макс. 4000 мс)
-        public void setHoldTimeout(int timeout)
+        public void SetHoldTimeout(int timeout)
         {
             EB_HOLD_T = timeout;
         }
 
         // установить таймаут импульсного удержания, умолч. 200 (макс. 4000 мс)
-        public void setStepTimeout(int timeout)
+        public void SetStepTimeout(int timeout)
         {
             EB_STEP_T = timeout;
         }
 
         // установить таймаут ожидания кликов, умолч. 500 (макс. 4000 мс)
-        public void setClickTimeout(int timeout)
+        public void SetClickTimeout(int timeout)
         {
             EB_CLICK_T = timeout;
         }
 
         // установить таймаут антидребезга, умолч. 50 (макс. 255 мс)
-        public void setDebTimeout(int timeout)
+        public void SetDebTimeout(int timeout)
         {
             EB_DEB_T = timeout;
         }
 
         // установить уровень кнопки (HIGH - кнопка замыкает VCC, LOW - замыкает GND)
-        protected void setBtnLevel(PinValue level) {
-            write_bf(EncButtonPackFlag.INV, level == PinValue.Low);
+        protected void SetBtnLevel(PinValue level)
+        {
+            WriteFlag(EncButtonPackFlag.INV, level == PinValue.Low);
         }
 
         // кнопка нажата в прерывании (не учитывает btnLevel!)
-        void pressISR() {
-            if (!read_bf(EncButtonPackFlag.DEB)) tmr = Utils.EB_UPTIME();
-            set_bf(EncButtonPackFlag.DEB | EncButtonPackFlag.BISR);
+        private void PressIsr()
+        {
+            if (!ReadFlag(EncButtonPackFlag.DEB)) _timer = Utils.EB_UPTIME();
+            SetFlag(EncButtonPackFlag.DEB | EncButtonPackFlag.BISR);
         }
-        
+
         // сбросить системные флаги (принудительно закончить обработку)
-        void reset() {
-            clicks = 0;
-            clr_bf(~EncButtonPackFlag.INV);
+        private void Reset()
+        {
+            Clicks = 0;
+            ClearFlag(~EncButtonPackFlag.INV);
         }
 
         // принудительно сбросить флаги событий
-        void clear() {
-            if (read_bf(EncButtonPackFlag.CLKS_R)) clicks = 0;
-            if (read_bf(EncButtonPackFlag.CLKS_R | EncButtonPackFlag.STP_R | EncButtonPackFlag.PRS_R | EncButtonPackFlag.HLD_R | EncButtonPackFlag.REL_R)) {
-                clr_bf(EncButtonPackFlag.CLKS_R | EncButtonPackFlag.STP_R | EncButtonPackFlag.PRS_R | EncButtonPackFlag.HLD_R | EncButtonPackFlag.REL_R);
+        private void Clear()
+        {
+            if (ReadFlag(EncButtonPackFlag.CLKS_R)) Clicks = 0;
+            if (ReadFlag(EncButtonPackFlag.CLKS_R | EncButtonPackFlag.STP_R | EncButtonPackFlag.PRS_R | EncButtonPackFlag.HLD_R | EncButtonPackFlag.REL_R))
+            {
+                ClearFlag(EncButtonPackFlag.CLKS_R | EncButtonPackFlag.STP_R | EncButtonPackFlag.PRS_R | EncButtonPackFlag.HLD_R | EncButtonPackFlag.REL_R);
             }
         }
-        
+
         // ====================== GET ======================
         // кнопка нажата [событие]
-        public bool press()
+        public bool Press()
         {
-            return read_bf(EncButtonPackFlag.PRS_R);
+            return ReadFlag(EncButtonPackFlag.PRS_R);
         }
 
         // кнопка отпущена (в любом случае) [событие]
-        public bool release()
+        public bool Release()
         {
-            return eq_bf(EncButtonPackFlag.REL_R | EncButtonPackFlag.REL,
+            return EqFlag(EncButtonPackFlag.REL_R | EncButtonPackFlag.REL,
                 EncButtonPackFlag.REL_R | EncButtonPackFlag.REL);
         }
 
         // клик по кнопке (отпущена без удержания) [событие]
-        public bool click()
+        public bool Click()
         {
-            return eq_bf(EncButtonPackFlag.REL_R | EncButtonPackFlag.REL | EncButtonPackFlag.HLD,
+            return EqFlag(EncButtonPackFlag.REL_R | EncButtonPackFlag.REL | EncButtonPackFlag.HLD,
                 EncButtonPackFlag.REL_R);
         }
 
         // кнопка зажата (между press() и release()) [состояние]
-        public bool pressing()
+        private bool Pressing()
         {
-            return read_bf(EncButtonPackFlag.PRS);
+            return ReadFlag(EncButtonPackFlag.PRS);
         }
 
         // кнопка была удержана (больше таймаута) [событие]
-        public bool hold()
+        public bool Hold()
         {
-            return read_bf(EncButtonPackFlag.HLD_R);
+            return ReadFlag(EncButtonPackFlag.HLD_R);
         }
 
         // кнопка была удержана (больше таймаута) с предварительными кликами [событие]
-        public bool hold(int num)
+        public bool Hold(int num)
         {
-            return clicks == num && hold();
+            return Clicks == num && Hold();
         }
 
         // кнопка удерживается (больше таймаута) [состояние]
-        public bool holding()
+        public bool Holding()
         {
-            return eq_bf(EncButtonPackFlag.PRS | EncButtonPackFlag.HLD, EncButtonPackFlag.PRS | EncButtonPackFlag.HLD);
+            return EqFlag(EncButtonPackFlag.PRS | EncButtonPackFlag.HLD, EncButtonPackFlag.PRS | EncButtonPackFlag.HLD);
         }
 
         // кнопка удерживается (больше таймаута) с предварительными кликами [состояние]
-        public bool holding(int num)
+        public bool Holding(int num)
         {
-            return clicks == num && holding();
+            return Clicks == num && Holding();
         }
 
         // импульсное удержание [событие]
-        public bool step()
+        public bool Step()
         {
-            return read_bf(EncButtonPackFlag.STP_R);
+            return ReadFlag(EncButtonPackFlag.STP_R);
         }
 
         // импульсное удержание с предварительными кликами [событие]
-        public bool step(int num)
+        public bool Step(int num)
         {
-            return clicks == num && step();
+            return Clicks == num && Step();
         }
 
         // зафиксировано несколько кликов [событие]
-        public bool hasClicks()
+        private bool HasClicks()
         {
-            return eq_bf(EncButtonPackFlag.CLKS_R | EncButtonPackFlag.HLD, EncButtonPackFlag.CLKS_R);
+            return EqFlag(EncButtonPackFlag.CLKS_R | EncButtonPackFlag.HLD, EncButtonPackFlag.CLKS_R);
         }
 
         // зафиксировано указанное количество кликов [событие]
-        public bool hasClicks(int num)
+        public bool HasClicks(int num)
         {
-            return clicks == num && hasClicks();
+            return Clicks == num && HasClicks();
         }
 
         // получить количество кликов
-        public int getClicks()
+        public int GetClicks()
         {
-            return clicks;
+            return Clicks;
         }
 
         // получить количество степов
-        public int getSteps()
+        public int GetSteps()
         {
-            return ftmr > 0 ? ((stepFor() + EB_STEP_T - 1) / EB_STEP_T) : 0; // (x + y - 1) / y
+            return _fTimer > 0 ? ((StepFor() + EB_STEP_T - 1) / EB_STEP_T) : 0; // (x + y - 1) / y
         }
 
         // кнопка отпущена после удержания [событие]
-        bool releaseHold()
+        private bool ReleaseHold()
         {
-            return eq_bf(
+            return EqFlag(
                 EncButtonPackFlag.REL_R | EncButtonPackFlag.REL | EncButtonPackFlag.HLD | EncButtonPackFlag.STP,
                 EncButtonPackFlag.REL_R | EncButtonPackFlag.HLD);
         }
 
         // кнопка отпущена после удержания с предварительными кликами [событие]
-        bool releaseHold(int num)
+        private bool ReleaseHold(int num)
         {
-            return clicks == num && eq_bf(EncButtonPackFlag.CLKS_R | EncButtonPackFlag.HLD | EncButtonPackFlag.STP,
+            return Clicks == num && EqFlag(EncButtonPackFlag.CLKS_R | EncButtonPackFlag.HLD | EncButtonPackFlag.STP,
                 EncButtonPackFlag.CLKS_R | EncButtonPackFlag.HLD);
         }
 
         // кнопка отпущена после импульсного удержания [событие]
-        bool releaseStep()
+        private bool ReleaseStep()
         {
-            return eq_bf(EncButtonPackFlag.REL_R | EncButtonPackFlag.REL | EncButtonPackFlag.STP,
+            return EqFlag(EncButtonPackFlag.REL_R | EncButtonPackFlag.REL | EncButtonPackFlag.STP,
                 EncButtonPackFlag.REL_R | EncButtonPackFlag.STP);
         }
 
         // кнопка отпущена после импульсного удержания с предварительными кликами [событие]
-        bool releaseStep(int num)
+        private bool ReleaseStep(int num)
         {
-            return clicks == num && eq_bf(EncButtonPackFlag.CLKS_R | EncButtonPackFlag.STP,
+            return Clicks == num && EqFlag(EncButtonPackFlag.CLKS_R | EncButtonPackFlag.STP,
                 EncButtonPackFlag.CLKS_R | EncButtonPackFlag.STP);
         }
 
         // кнопка ожидает повторных кликов [состояние]
-        bool waiting()
+        private bool Waiting()
         {
-            return clicks > 0 && eq_bf(EncButtonPackFlag.PRS | EncButtonPackFlag.REL, 0);
+            return Clicks > 0 && EqFlag(EncButtonPackFlag.PRS | EncButtonPackFlag.REL, 0);
         }
 
         // идёт обработка [состояние]
-        bool busy()
+        private bool Busy()
         {
-            return read_bf(EncButtonPackFlag.BUSY);
+            return ReadFlag(EncButtonPackFlag.BUSY);
         }
 
         // было действие с кнопки, вернёт код события [событие]
-        EncButtonFlag action()
+        private EncButtonFlag Action()
         {
             switch (flags & (EncButtonPackFlag)0b111111111)
             {
@@ -234,11 +241,11 @@ namespace nanoFramework.EncButton.Core
 
         // ====================== TIME ======================
         // после взаимодействия с кнопкой (или энкодером EncButton) прошло указанное время, мс [событие]
-        bool timeout(int tout)
+        private bool Timeout(int tout)
         {
-            if (read_bf(EncButtonPackFlag.TOUT) && (int)((int)Utils.EB_UPTIME() - tmr) > tout)
+            if (ReadFlag(EncButtonPackFlag.TOUT) && (int)((int)Utils.EB_UPTIME() - _timer) > tout)
             {
-                clr_bf(EncButtonPackFlag.TOUT);
+                ClearFlag(EncButtonPackFlag.TOUT);
                 return true;
             }
 
@@ -246,122 +253,125 @@ namespace nanoFramework.EncButton.Core
         }
 
         // время, которое кнопка удерживается (с начала нажатия), мс
-        int pressFor()
+        private int PressFor()
         {
-            if (ftmr > 0)
+            if (_fTimer > 0)
             {
-                return Utils.EB_UPTIME() - ftmr;
+                return Utils.EB_UPTIME() - _fTimer;
             }
 
             return 0;
         }
 
         // кнопка удерживается дольше чем (с начала нажатия), мс [состояние]
-        bool pressFor(int ms)
+        private bool PressFor(int ms)
         {
-            return pressFor() > ms;
+            return PressFor() > ms;
         }
 
         // время, которое кнопка удерживается (с начала удержания), мс
-        int holdFor()
+        private int HoldFor()
         {
-            if (read_bf(EncButtonPackFlag.HLD))
+            if (ReadFlag(EncButtonPackFlag.HLD))
             {
-                return pressFor() - EB_HOLD_T;
+                return PressFor() - EB_HOLD_T;
             }
 
             return 0;
         }
 
         // кнопка удерживается дольше чем (с начала удержания), мс [состояние]
-        bool holdFor(int ms)
+        private bool HoldFor(int ms)
         {
-            return holdFor() > ms;
+            return HoldFor() > ms;
         }
 
         // время, которое кнопка удерживается (с начала степа), мс
-        int stepFor()
+        private int StepFor()
         {
-            if (read_bf(EncButtonPackFlag.STP))
+            if (ReadFlag(EncButtonPackFlag.STP))
             {
-                return pressFor() - EB_HOLD_T * 2;
+                return PressFor() - EB_HOLD_T * 2;
             }
 
             return 0;
         }
 
         // кнопка удерживается дольше чем (с начала степа), мс [состояние]
-        bool stepFor(int ms)
+        private bool StepFor(int ms)
         {
-            return stepFor() > ms;
+            return StepFor() > ms;
         }
 
         // ====================== POLL ======================
         // обработка виртуальной кнопки как одновременное нажатие двух других кнопок
-        protected bool tick(VirtButton b0, VirtButton b1)
+        protected bool Tick(VirtButton b0, VirtButton b1)
         {
-            if (read_bf(EncButtonPackFlag.BOTH))
+            if (ReadFlag(EncButtonPackFlag.BOTH))
             {
-                if (!b0.pressing() && !b1.pressing()) clr_bf(EncButtonPackFlag.BOTH);
-                if (!b0.pressing()) b0.reset();
-                if (!b1.pressing()) b1.reset();
-                b0.clear();
-                b1.clear();
-                return tick(true);
+                if (!b0.Pressing() && !b1.Pressing()) ClearFlag(EncButtonPackFlag.BOTH);
+                if (!b0.Pressing()) b0.Reset();
+                if (!b1.Pressing()) b1.Reset();
+                b0.Clear();
+                b1.Clear();
+                return Tick(true);
             }
             else
             {
-                if (b0.pressing() && b1.pressing()) set_bf(EncButtonPackFlag.BOTH);
-                return tick(false);
+                if (b0.Pressing() && b1.Pressing()) SetFlag(EncButtonPackFlag.BOTH);
+                return Tick(false);
             }
         }
 
         // обработка кнопки значением
-        protected bool tick(bool s)
+        protected bool Tick(bool s)
         {
-            clear();
-            s = pollBtn(s);
+            Clear();
+            s = PollBtn(s);
 
-            if(s) Action?.Invoke(action());
+            if (s)
+            {
+                ButtonAction?.Invoke(this, Action());
+            }
 
             return s;
         }
 
         // обработка кнопки без сброса событий и вызова коллбэка
-        protected bool tickRaw(bool s)
+        protected bool TickRaw(bool s)
         {
-            return pollBtn(s);
+            return PollBtn(s);
         }
 
-        bool pollBtn(bool s)
+        private bool PollBtn(bool s)
         {
-            if (read_bf(EncButtonPackFlag.BISR))
+            if (ReadFlag(EncButtonPackFlag.BISR))
             {
-                clr_bf(EncButtonPackFlag.BISR);
+                ClearFlag(EncButtonPackFlag.BISR);
                 s = true;
             }
-            else s ^= read_bf(EncButtonPackFlag.INV);
+            else s ^= ReadFlag(EncButtonPackFlag.INV);
 
-            if (!read_bf(EncButtonPackFlag.BUSY))
+            if (!ReadFlag(EncButtonPackFlag.BUSY))
             {
-                if (s) set_bf(EncButtonPackFlag.BUSY);
+                if (s) SetFlag(EncButtonPackFlag.BUSY);
                 else return false;
             }
 
             int ms = Utils.EB_UPTIME();
-            int deb = ms - tmr;
+            int deb = ms - _timer;
 
             if (s)
             {
                 // кнопка нажата
-                if (!read_bf(EncButtonPackFlag.PRS))
+                if (!ReadFlag(EncButtonPackFlag.PRS))
                 {
                     // кнопка не была нажата ранее
-                    if (!read_bf(EncButtonPackFlag.DEB) && EB_DEB_T > 0)
+                    if (!ReadFlag(EncButtonPackFlag.DEB) && EB_DEB_T > 0)
                     {
                         // дебаунс ещё не сработал
-                        set_bf(EncButtonPackFlag.DEB); // будем ждать дебаунс
-                        tmr = ms; // сброс таймаута
+                        SetFlag(EncButtonPackFlag.DEB); // будем ждать дебаунс
+                        _timer = ms; // сброс таймаута
                     }
                     else
                     {
@@ -369,36 +379,36 @@ namespace nanoFramework.EncButton.Core
                         if (deb >= EB_DEB_T || EB_DEB_T == 0)
                         {
                             // ждём EB_DEB_TIME
-                            set_bf(EncButtonPackFlag.PRS | EncButtonPackFlag.PRS_R); // флаг на нажатие
+                            SetFlag(EncButtonPackFlag.PRS | EncButtonPackFlag.PRS_R); // флаг на нажатие
 
-                            ftmr = ms;
+                            _fTimer = ms;
 
-                            tmr = ms; // сброс таймаута
+                            _timer = ms; // сброс таймаута
                         }
                     }
                 }
                 else
                 {
                     // кнопка уже была нажата
-                    if (!read_bf(EncButtonPackFlag.EHLD))
+                    if (!ReadFlag(EncButtonPackFlag.EHLD))
                     {
-                        if (!read_bf(EncButtonPackFlag.HLD))
+                        if (!ReadFlag(EncButtonPackFlag.HLD))
                         {
                             // удержание ещё не зафиксировано
 
                             if (deb >= (int)EB_HOLD_T) // ждём EB_HOLD_TIME - это удержание
                             {
-                                set_bf(EncButtonPackFlag.HLD_R | EncButtonPackFlag.HLD); // флаг что было удержание
-                                tmr = ms; // сброс таймаута
+                                SetFlag(EncButtonPackFlag.HLD_R | EncButtonPackFlag.HLD); // флаг что было удержание
+                                _timer = ms; // сброс таймаута
                             }
                         }
                         else
                         {
                             // удержание зафиксировано
-                            if (deb >= (int)(read_bf(EncButtonPackFlag.STP) ? EB_STEP_T : EB_HOLD_T))
+                            if (deb >= (int)(ReadFlag(EncButtonPackFlag.STP) ? EB_STEP_T : EB_HOLD_T))
                             {
-                                set_bf(EncButtonPackFlag.STP | EncButtonPackFlag.STP_R); // флаг степ
-                                tmr = ms; // сброс таймаута
+                                SetFlag(EncButtonPackFlag.STP | EncButtonPackFlag.STP_R); // флаг степ
+                                _timer = ms; // сброс таймаута
                             }
                         }
                     }
@@ -407,76 +417,76 @@ namespace nanoFramework.EncButton.Core
             else
             {
                 // кнопка не нажата
-                if (read_bf(EncButtonPackFlag.PRS))
+                if (ReadFlag(EncButtonPackFlag.PRS))
                 {
                     // но была нажата
                     if (deb >= EB_DEB_T)
                     {
                         // ждём EB_DEB_TIME
-                        if (!read_bf(EncButtonPackFlag.HLD)) clicks++; // не удерживали - это клик
-                        if (read_bf(EncButtonPackFlag.EHLD)) clicks = 0; //
-                        set_bf(EncButtonPackFlag.REL | EncButtonPackFlag.REL_R); // флаг release
-                        clr_bf(EncButtonPackFlag.PRS); // кнопка отпущена
+                        if (!ReadFlag(EncButtonPackFlag.HLD)) Clicks++; // не удерживали - это клик
+                        if (ReadFlag(EncButtonPackFlag.EHLD)) Clicks = 0; //
+                        SetFlag(EncButtonPackFlag.REL | EncButtonPackFlag.REL_R); // флаг release
+                        ClearFlag(EncButtonPackFlag.PRS); // кнопка отпущена
                     }
                 }
-                else if (read_bf(EncButtonPackFlag.REL))
+                else if (ReadFlag(EncButtonPackFlag.REL))
                 {
-                    if (!read_bf(EncButtonPackFlag.EHLD))
+                    if (!ReadFlag(EncButtonPackFlag.EHLD))
                     {
-                        set_bf(EncButtonPackFlag.REL_R); // флаг releaseHold / releaseStep
+                        SetFlag(EncButtonPackFlag.REL_R); // флаг releaseHold / releaseStep
                     }
 
-                    clr_bf(EncButtonPackFlag.REL | EncButtonPackFlag.EHLD);
-                    tmr = ms; // сброс таймаута
+                    ClearFlag(EncButtonPackFlag.REL | EncButtonPackFlag.EHLD);
+                    _timer = ms; // сброс таймаута
                 }
-                else if (clicks > 0)
+                else if (Clicks > 0)
                 {
                     // есть клики, ждём EB_CLICK_TIME
 
-                    if (read_bf(EncButtonPackFlag.HLD | EncButtonPackFlag.STP) || deb >= (int)EB_CLICK_T)
-                        set_bf(EncButtonPackFlag.CLKS_R); // флаг clicks
+                    if (ReadFlag(EncButtonPackFlag.HLD | EncButtonPackFlag.STP) || deb >= (int)EB_CLICK_T)
+                        SetFlag(EncButtonPackFlag.CLKS_R); // флаг clicks
 
-                    else if (ftmr > 0) ftmr = 0;
+                    else if (_fTimer > 0) _fTimer = 0;
                 }
-                else if (read_bf(EncButtonPackFlag.BUSY))
+                else if (ReadFlag(EncButtonPackFlag.BUSY))
                 {
-                    clr_bf(EncButtonPackFlag.HLD | EncButtonPackFlag.STP | EncButtonPackFlag.BUSY);
-                    set_bf(EncButtonPackFlag.TOUT);
+                    ClearFlag(EncButtonPackFlag.HLD | EncButtonPackFlag.STP | EncButtonPackFlag.BUSY);
+                    SetFlag(EncButtonPackFlag.TOUT);
 
-                    ftmr = 0;
+                    _fTimer = 0;
 
-                    tmr = ms; // test!!
+                    _timer = ms; // test!!
                 }
 
-                if (read_bf(EncButtonPackFlag.DEB)) clr_bf(EncButtonPackFlag.DEB); // сброс ожидания нажатия (дебаунс)
+                if (ReadFlag(EncButtonPackFlag.DEB)) ClearFlag(EncButtonPackFlag.DEB); // сброс ожидания нажатия (дебаунс)
             }
 
-            return read_bf(EncButtonPackFlag.CLKS_R | EncButtonPackFlag.PRS_R | EncButtonPackFlag.HLD_R |
+            return ReadFlag(EncButtonPackFlag.CLKS_R | EncButtonPackFlag.PRS_R | EncButtonPackFlag.HLD_R |
                            EncButtonPackFlag.STP_R | EncButtonPackFlag.REL_R);
         }
 
-        public void set_bf(EncButtonPackFlag x)
+        private void SetFlag(EncButtonPackFlag x)
         {
             flags |= x;
         }
 
-        public void clr_bf(EncButtonPackFlag x)
+        private void ClearFlag(EncButtonPackFlag x)
         {
             flags &= ~x;
         }
 
-        public bool read_bf(EncButtonPackFlag x)
+        protected bool ReadFlag(EncButtonPackFlag x)
         {
             return flags.HasFlag(x);
         }
 
-        public void write_bf(EncButtonPackFlag x, bool v)
+        private void WriteFlag(EncButtonPackFlag x, bool v)
         {
-            if (v) set_bf(x);
-            else clr_bf(x);
+            if (v) SetFlag(x);
+            else ClearFlag(x);
         }
 
-        public bool eq_bf(EncButtonPackFlag x, EncButtonPackFlag y)
+        private bool EqFlag(EncButtonPackFlag x, EncButtonPackFlag y)
         {
             return (flags & x) == y;
         }
