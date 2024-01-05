@@ -3,14 +3,14 @@ using System.Device.Gpio;
 
 namespace nanoFramework.EncButton
 {
-    public class Utils
+    public static class Utils
     {
-        public static int EB_UPTIME()
+        public static long GetUptime()
         {
-            return (int)(DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond);
+            return System.Environment.TickCount64;
         }
         
-        public static bool EBread(int pin, GpioController gpioController)
+        public static bool ReadPin(int pin, GpioController gpioController)
         {
             return gpioController.Read(pin) == PinValue.High;
         }
