@@ -438,7 +438,7 @@ namespace nanoFramework.EncButton.Core
                     }
                     else
                     {
-                        Debug.WriteLine($"Отработал антидребезг на отпускание {deb}");
+                        //Debug.WriteLine($"Отработал антидребезг на отпускание {deb}");
                     }
                 }
                 else if (ReadFlag(EncButtonPackFlag.Release))
