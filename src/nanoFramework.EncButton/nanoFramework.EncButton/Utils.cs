@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Device.Gpio;
+using System.Diagnostics;
 
 namespace nanoFramework.EncButton
 {

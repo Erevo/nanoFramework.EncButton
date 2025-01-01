@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Device.Gpio;
+using System.Diagnostics;
 using nanoFramework.EncButton.Enums;
 
 namespace nanoFramework.EncButton.Core
@@ -10,7 +11,7 @@ namespace nanoFramework.EncButton.Core
 
         public const int EB_SHIFT = 4;
 
-        public int EB_DEB_T { get; set; } = 10;
+        public int EB_DEB_T { get; set; } = 70;
         public int EB_CLICK_T { get; set; } = 200;// >> EB_SHIFT;
         public int EB_HOLD_T = 600;// >> EB_SHIFT;
         public int EB_STEP_T = 200 ;//>> EB_SHIFT;
@@ -331,44 +332,43 @@ namespace nanoFramework.EncButton.Core
         }
 
         // обработка кнопки значением
-        protected bool Tick(bool s)
+        protected bool Tick(bool rawButtonState)
         {
             Clear();
-            s = PollBtn(s);
+            rawButtonState = PollBtn(rawButtonState);
 
-            if (s)
+            if (rawButtonState)
             {
                 ButtonAction?.Invoke(this, Action());
             }
 
-            return s;
+            return rawButtonState;
         }
 
         // обработка кнопки без сброса событий и вызова коллбэка
-        protected bool TickRaw(bool s)
+        protected bool TickRaw(bool rawButtonState)
         {
-            return PollBtn(s);
+            return PollBtn(rawButtonState);
         }
 
-        private bool PollBtn(bool s)
+        private bool PollBtn(bool rawButtonState)
         {
             if (ReadFlag(EncButtonPackFlag.BISR))
             {
                 ClearFlag(EncButtonPackFlag.BISR);
-                s = true;
+                rawButtonState = true;
             }
-            else s ^= ReadFlag(EncButtonPackFlag.INV);
+            else rawButtonState ^= ReadFlag(EncButtonPackFlag.INV);
 
             if (!ReadFlag(EncButtonPackFlag.Busy))
             {
-                if (s) SetFlag(EncButtonPackFlag.Busy);
+                if (rawButtonState) SetFlag(EncButtonPackFlag.Busy);
                 else return false;
             }
 
             long ms = Utils.GetUptime();
             long deb = ms - _timer;
-
-            if (s)
+            if (rawButtonState)
             {
                 // кнопка нажата
                 if (!ReadFlag(EncButtonPackFlag.Press))
@@ -435,6 +435,10 @@ namespace nanoFramework.EncButton.Core
                         if (ReadFlag(EncButtonPackFlag.EHLD)) Clicks = 0; //
                         SetFlag(EncButtonPackFlag.Release | EncButtonPackFlag.REL_R); // флаг release
                         ClearFlag(EncButtonPackFlag.Press); // кнопка отпущена
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"Отработал антидребезг на отпускание {deb}");
                     }
                 }
                 else if (ReadFlag(EncButtonPackFlag.Release))
