@@ -30,7 +30,8 @@ namespace nanoFramework.EncButton.Core
         // прочитать текущее значение кнопки (без дебаунса)
         public bool ReadRaw()
         {
-            return Utils.ReadPin(Pin, _gpioController) ^ ReadFlag(EncButtonPackFlag.INV);
+            var readPinValue = Utils.ReadPin(Pin, _gpioController);
+            return readPinValue ^ ReadFlag(EncButtonPackFlag.INV);
         }
 
         // указать пин и его режим работы
