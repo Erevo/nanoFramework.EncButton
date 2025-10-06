@@ -11,7 +11,7 @@ namespace nanoFramework.EncButton.Core
 
         public const int EB_SHIFT = 4;
 
-        public int EB_DEB_T { get; set; } = 40;
+        public int EB_DEB_T { get; set; } = 30;
         public int EB_CLICK_T { get; set; } = 200;// >> EB_SHIFT;
         public int EB_HOLD_T = 600;// >> EB_SHIFT;
         public int EB_STEP_T = 200 ;//>> EB_SHIFT;
