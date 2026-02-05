@@ -49,7 +49,7 @@
       <HintPath>..\..\..\..\OperBlock\src\OperBlock\packages\nanoFramework.System.Device.Gpio.1.1.57\lib\System.Device.Gpio.dll</HintPath>
     </Reference>
     <Reference Include="System.Device.Wifi">
-      <HintPath>..\..\..\..\OperBlock\src\OperBlock\packages\nanoFramework.System.Device.Wifi.1.5.134\lib\System.Device.Wifi.dll</HintPath>
+      <HintPath>..\..\..\..\OperBlock\src\OperBlock\packages\nanoFramework.System.Device.Wifi.1.5.139\lib\System.Device.Wifi.dll</HintPath>
     </Reference>
     <Reference Include="System.Diagnostics.Stopwatch">
       <HintPath>..\..\..\..\OperBlock\src\OperBlock\packages\nanoFramework.System.Diagnostics.Stopwatch.1.2.862\lib\System.Diagnostics.Stopwatch.dll</HintPath>
@@ -58,10 +58,10 @@
       <HintPath>..\..\..\..\OperBlock\src\OperBlock\packages\nanoFramework.System.IO.Streams.1.1.96\lib\System.IO.Streams.dll</HintPath>
     </Reference>
     <Reference Include="System.Net">
-      <HintPath>..\..\..\..\OperBlock\src\OperBlock\packages\nanoFramework.System.Net.1.11.43\lib\System.Net.dll</HintPath>
+      <HintPath>..\..\..\..\OperBlock\src\OperBlock\packages\nanoFramework.System.Net.1.11.47\lib\System.Net.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.Http">
-      <HintPath>..\..\..\..\OperBlock\src\OperBlock\packages\nanoFramework.System.Net.Http.1.5.196\lib\System.Net.Http.dll</HintPath>
+      <HintPath>..\..\..\..\OperBlock\src\OperBlock\packages\nanoFramework.System.Net.Http.1.5.200\lib\System.Net.Http.dll</HintPath>
     </Reference>
     <Reference Include="System.Threading">
       <HintPath>..\..\..\..\OperBlock\src\OperBlock\packages\nanoFramework.System.Threading.1.1.52\lib\System.Threading.dll</HintPath>

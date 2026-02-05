@@ -332,7 +332,7 @@ namespace nanoFramework.EncButton.Core
         }
 
         // обработка кнопки значением
-        protected bool Tick(bool rawButtonState)
+        public bool Tick(bool rawButtonState)
         {
             Clear();
             rawButtonState = PollBtn(rawButtonState);
